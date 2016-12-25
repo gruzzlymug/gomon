@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+
+.chart rect {
+  fill: steelblue;
+}
+
+.chart text {
+  fill: white;
+  font: 10px sans-serif;
+  text-anchor: middle;
+}
+
+</style>
+<head>
+    <script type="text/javascript" src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.6/d3.min.js"></script>
+</head>
+<body>
+    <h1 class="notice">load monitor</h1>
+    <ul class="my-new-list">
+    </ul>
+    <svg class="chart"></svg>
+</body>
+<script type="text/javascript">
+var width = 960,
+    height = 500;
+
+function udc() {
+    $.ajax({
+       type: 'POST',
+       url: '/',
+       dataType: 'json',
+       success: function(jsonData) {
+        //   alert(jsonData);
+        updateChart(jsonData);
+        setTimeout(udc, 10000);
+       }
+    });
+}
+
+function updateChart(data) {
+    // $.getJSON("/", function(data) {
+        var samples = data.Samples;
+        var barWidth = width / samples.length;
+        
+        var chart = d3.select(".chart");
+    
+        var bar = chart.selectAll("rect")
+                      .data(samples)
+                      .attr("y", function(d) { return height - d.Load / 100 * 25; });
+                      
+        var text = chart.selectAll("text")
+                .data(samples)
+              .attr("x", barWidth / 2)
+              .attr("y", function(d) { return (height - d.Load / 100 * 25) + 4; })
+                .text(function(d) { return d.Load / 100; });
+    // });
+}
+
+function drawChart(data) {
+    var y = d3.scale.linear()
+        .range([height, 0]);
+    
+    var chart = d3.select(".chart")
+        .attr("width", width)
+        .attr("height", height);
+    
+    // console.log(data)
+
+    d3.json(data.Samples, function(error, data) {
+      var samples = data.Samples
+    //   console.log(samples);
+    var xx = d3.max(data.Samples, function(d) { return d.Load/100; });
+    xx = 10;
+    //console.log("xx" + xx)
+    //   y.domain([0, d3.max(data.Samples, function(d) { return d.Load; })]);
+      y.domain([0, xx]);
+      //console.log(y);
+      var barWidth = width / samples.length;
+    
+      // http://stackoverflow.com/questions/20005059/how-to-iterate-over-data-in-json-file-using-d3-javascript 
+      var loadData = [];
+      for (var i = 0; i < samples.length; i++) {
+          var obj = samples[i];
+        //   console.log(i + ": " + obj.Load / 100);
+          loadData.push(obj.Load / 100);
+      }
+      
+      var bar = chart.selectAll("g")
+          .data(loadData)
+        .enter().append("g")
+          .attr("transform", function(d, i) { return "translate(" + i * barWidth + ",0)"; });
+    
+      bar.append("rect")
+          .attr("y", function(d) { return height - d * 25; })
+          .attr("height", function(d) { return height; })
+          .attr("width", barWidth - 1);
+    
+      bar.append("text")
+          .attr("x", barWidth / 2)
+          .attr("y", function(d) { return (height - d * 25) + 4; })
+          .attr("dy", ".75em")
+          .text(function(d) { return d; });
+
+    //   success: function() {
+    //     setTimeout(updateChart, 3000);
+    //   }
+        
+    });
+}
+
+function start() {
+    $.getJSON("/", function(data) {
+    //   var items = [];
+    //   $.each(data.Samples, function(key, val) {
+    //       //console.log("k: " + key + ", v: " + val.Load);
+    //       items.push("<li id='" + val.Timestamp + "'>" + val.Timestamp + ": " + val.Load + "</li>");
+    //   });
+       
+    //   $("<ul/>", {
+    //       "class": "my-new-list",
+    //       html: items.join("")
+    //   }).appendTo("body");
+       
+       drawChart(data.Samples);
+    });
+}
+
+$("document").ready(start);
+</script>
+<br>
+<a href="javascript:updateChart()">update</a>
+<br>
+<a href="javascript:udc()">udc</a>
